@@ -38,24 +38,24 @@ public class SpringBananaApplication {
     public RouterFunction<ServerResponse> router() {
         return
                 RouterFunctions
-                        .route(POST("/callGetFlux"), serverRequest -> {
+                        .route(GET("/getFlux"), serverRequest -> {
 
 
-                            client.get()
+                            Flux<Line> resp = client.get()
                                     .uri("/flux")
                                     .accept(MediaType.APPLICATION_STREAM_JSON)
                                     .retrieve()
                                     .bodyToFlux(Line.class)
-                                    .onErrorContinue((err, obj) -> System.err.println("CONTINUE ON /client" + err))
-                                    .subscribe(resp -> System.out.println("GET Response: " + resp));
+                                    .doOnNext(l -> log.info("RECV : " + l));
 
-                            return ServerResponse.ok().build();
+                            return ServerResponse.ok().body(resp, Line.class);
                         })
 
 
+                        //Flux stream breaks on element #4, as defined in Line constructor
                         .andRoute(GET("/flux"), serverRequest -> {
-                            Flux<Line> lineFlux = Flux.just("1", "2", "ERR", "4")
-                                    .delayElements(Duration.ofSeconds(1))
+                            Flux<Line> lineFlux = Flux.interval(Duration.ofSeconds(1))
+                                    .map(Object::toString)
                                     .map(Line::new)
 //                                    .onErrorContinue((err, ojb) -> System.err.println("Continued on /flux"))
                                     ;
@@ -69,7 +69,7 @@ public class SpringBananaApplication {
                         //--------------------------------------------
 
                         //Sends a Flux body
-                        .andRoute(GET("/callPostFlux"), serverRequest -> {
+                        .andRoute(GET("/postFlux"), serverRequest -> {
 
 
                             Flux<Line> lineFlux = Flux.just("1", "2", "3")
@@ -100,7 +100,7 @@ public class SpringBananaApplication {
                                     .bodyToFlux(Line.class)
                                     .map(l -> new Line(l.value + "-PROCESSED"))
                                     .log()
-                                    .doOnNext(l -> log.info("POST FLUX Handler " + l));
+                                    .doOnNext(l -> log.info("PROCESSED : " + l));
 
                             return ServerResponse
                                     .ok()
