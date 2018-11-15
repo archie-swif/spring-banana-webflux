@@ -38,8 +38,25 @@ public class SpringBananaApplication {
     public RouterFunction<ServerResponse> router() {
         return
                 RouterFunctions
-                        .route(GET("/getFlux"), serverRequest -> {
 
+                        //Return a flux stream that breaks on element #4, as defined in Line constructor
+                        .route(GET("/flux"), serverRequest -> {
+                            Flux<Line> lineFlux = Flux.just("1", "2", "3", "4", "5")
+                                    .delayElements(Duration.ofSeconds(1))
+                                    .map(Object::toString)
+                                    .map(Line::new)
+//                                    .onErrorContinue((err, ojb) -> System.err.println("Continued on /flux"))
+                                    .log();
+
+
+                            return ServerResponse
+                                    .ok()
+                                    .contentType(MediaType.APPLICATION_STREAM_JSON)
+                                    .body(lineFlux, Line.class);
+                        })
+
+                        //Does a WebClient GET request to /flux above
+                        .andRoute(GET("/getFlux"), serverRequest -> {
 
                             Flux<Line> resp = client.get()
                                     .uri("/flux")
@@ -48,25 +65,28 @@ public class SpringBananaApplication {
                                     .bodyToFlux(Line.class)
                                     .doOnNext(l -> log.info("RECV : " + l));
 
-                            return ServerResponse.ok().body(resp, Line.class);
-                        })
-
-
-                        //Flux stream breaks on element #4, as defined in Line constructor
-                        .andRoute(GET("/flux"), serverRequest -> {
-                            Flux<Line> lineFlux = Flux.just("1", "2", "3", "4", "5")
-                                    .map(Object::toString)
-                                    .map(Line::new)
-//                                    .onErrorContinue((err, ojb) -> System.err.println("Continued on /flux"))
-                                    ;
-
-
-                            return ServerResponse.ok()
+                            return ServerResponse
+                                    .ok()
                                     .contentType(MediaType.APPLICATION_STREAM_JSON)
-                                    .body(lineFlux, Line.class);
+                                    .body(resp, Line.class);
                         })
+
 
                         //--------------------------------------------
+
+                        //Receives a flux body
+                        .andRoute(POST("/flux"), serverRequest -> {
+
+                            Flux<Line> response = serverRequest
+                                    .bodyToFlux(Line.class)
+                                    .map(l -> new Line(l.value + "-PROCESSED"))
+                                    .doOnNext(l -> log.info("PROCESSED : " + l));
+
+                            return ServerResponse
+                                    .ok()
+                                    .contentType(MediaType.APPLICATION_STREAM_JSON)
+                                    .body(response, Line.class);
+                        })
 
                         //Sends a Flux body
                         .andRoute(GET("/postFlux"), serverRequest -> {
@@ -76,36 +96,19 @@ public class SpringBananaApplication {
                                     .delayElements(Duration.ofSeconds(2))
                                     .map(Line::new);
 
-                            Flux<Line> resp =
-                                    client.post()
-                                            .uri("/flux")
-                                            .accept(MediaType.APPLICATION_STREAM_JSON)
-                                            .contentType(MediaType.APPLICATION_STREAM_JSON)
-                                            .body(lineFlux, Line.class)
-                                            .retrieve()
-                                            .bodyToFlux(Line.class)
-                                            .doOnNext(l -> log.info("RECV : " + l))
-                                            .log();
+                            Flux<Line> resp = client.post()
+                                    .uri("/flux")
+                                    .accept(MediaType.APPLICATION_STREAM_JSON)
+                                    .contentType(MediaType.APPLICATION_STREAM_JSON)
+                                    .body(lineFlux, Line.class)
+                                    .retrieve()
+                                    .bodyToFlux(Line.class)
+                                    .doOnNext(l -> log.info("RECV : " + l));
 
                             return ServerResponse
                                     .ok()
                                     .contentType(MediaType.APPLICATION_STREAM_JSON)
                                     .body(resp, Line.class);
-                        })
-
-                        //Receives a flux body
-                        .andRoute(POST("/flux"), serverRequest -> {
-
-                            Flux<Line> response = serverRequest
-                                    .bodyToFlux(Line.class)
-                                    .map(l -> new Line(l.value + "-PROCESSED"))
-                                    .log()
-                                    .doOnNext(l -> log.info("PROCESSED : " + l));
-
-                            return ServerResponse
-                                    .ok()
-                                    .contentType(MediaType.APPLICATION_STREAM_JSON)
-                                    .body(response, Line.class);
                         })
 
                 ;
