@@ -54,7 +54,7 @@ public class SpringBananaApplication {
 
                         //Flux stream breaks on element #4, as defined in Line constructor
                         .andRoute(GET("/flux"), serverRequest -> {
-                            Flux<Line> lineFlux = Flux.interval(Duration.ofSeconds(1))
+                            Flux<Line> lineFlux = Flux.just("1", "2", "3", "4", "5")
                                     .map(Object::toString)
                                     .map(Line::new)
 //                                    .onErrorContinue((err, ojb) -> System.err.println("Continued on /flux"))
