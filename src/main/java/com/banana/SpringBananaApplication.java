@@ -1,5 +1,8 @@
 package com.banana;
 
+import io.netty.handler.ssl.SslContext;
+import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -7,12 +10,15 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.RouterFunctions;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Flux;
+import reactor.netty.http.client.HttpClient;
 
+import javax.net.ssl.SSLException;
 import java.time.Duration;
 
 import static org.springframework.web.reactive.function.server.RequestPredicates.GET;
@@ -30,8 +36,15 @@ public class SpringBananaApplication {
     WebClient client;
 
     @Bean
-    public WebClient webClient() {
-        return WebClient.create("http://localhost:8080/");
+    public WebClient webClient() throws SSLException {
+        SslContext sslContext = SslContextBuilder
+                .forClient()
+                .trustManager(InsecureTrustManagerFactory.INSTANCE)
+                .build();
+        HttpClient httpClient = HttpClient.create().secure(t -> t.sslContext(sslContext));
+        return WebClient.builder()
+                .clientConnector(new ReactorClientHttpConnector(httpClient))
+                .build();
     }
 
     @Bean
@@ -45,7 +58,7 @@ public class SpringBananaApplication {
                                     .delayElements(Duration.ofSeconds(1))
                                     .map(Object::toString)
                                     .map(Line::new)
-//                                    .onErrorContinue((err, ojb) -> System.err.println("Continued on /flux"))
+//                                    .onErrorContinue((err, obj) -> log.error("Error on parsing JSON {}", obj, err))
                                     .log();
 
 
@@ -57,9 +70,8 @@ public class SpringBananaApplication {
 
                         //Does a WebClient GET request to /flux above
                         .andRoute(GET("/getFlux"), serverRequest -> {
-
                             Flux<Line> resp = client.get()
-                                    .uri("/flux")
+                                    .uri("https://localhost:8443/flux")
                                     .accept(MediaType.APPLICATION_STREAM_JSON)
                                     .retrieve()
                                     .bodyToFlux(Line.class)
@@ -97,7 +109,7 @@ public class SpringBananaApplication {
                                     .map(Line::new);
 
                             Flux<Line> resp = client.post()
-                                    .uri("/flux")
+                                    .uri("https://localhost:8443/flux")
                                     .accept(MediaType.APPLICATION_STREAM_JSON)
                                     .contentType(MediaType.APPLICATION_STREAM_JSON)
                                     .body(lineFlux, Line.class)
