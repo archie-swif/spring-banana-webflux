@@ -6,17 +6,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.RouterFunctions;
 import org.springframework.web.reactive.function.server.ServerResponse;
-import reactor.core.publisher.Flux;
-
-import java.time.Duration;
+import reactor.core.publisher.Mono;
 
 import static org.springframework.web.reactive.function.server.RequestPredicates.GET;
-import static org.springframework.web.reactive.function.server.RequestPredicates.POST;
 
 @SpringBootApplication
 public class SpringBananaApplication {
@@ -40,75 +39,49 @@ public class SpringBananaApplication {
                 RouterFunctions
 
                         //Return a flux stream that breaks on element #4, as defined in Line constructor
-                        .route(GET("/flux"), serverRequest -> {
-                            Flux<Line> lineFlux = Flux.just("1", "2", "3", "4", "5")
-                                    .delayElements(Duration.ofSeconds(1))
-                                    .map(Object::toString)
-                                    .map(Line::new)
-//                                    .onErrorContinue((err, ojb) -> System.err.println("Continued on /flux"))
-                                    .log();
+                        .route(GET("/test"), serverRequest -> {
 
+                            Mono<String> token = client
+                                    .get()
+                                    .uri("/getToken")
+                                    .retrieve()
+                                    .bodyToMono(String.class);
+
+                            Mono<HttpStatus> xxx = token
+                                    .flatMap(t ->
+                                            client.get()
+                                                    .uri("/auth")
+                                                    .header("TOKEN", t)
+                                                    .exchange()
+                                                    .map(ClientResponse::statusCode)
+                                    );
 
                             return ServerResponse
                                     .ok()
-                                    .contentType(MediaType.APPLICATION_STREAM_JSON)
-                                    .body(lineFlux, Line.class);
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .body(xxx, HttpStatus.class)
+                                    .log();
                         })
 
                         //Does a WebClient GET request to /flux above
-                        .andRoute(GET("/getFlux"), serverRequest -> {
-
-                            Flux<Line> resp = client.get()
-                                    .uri("/flux")
-                                    .accept(MediaType.APPLICATION_STREAM_JSON)
-                                    .retrieve()
-                                    .bodyToFlux(Line.class)
-                                    .doOnNext(l -> log.info("RECV : " + l));
+                        .andRoute(GET("/getToken"), serverRequest -> {
 
                             return ServerResponse
                                     .ok()
-                                    .contentType(MediaType.APPLICATION_STREAM_JSON)
-                                    .body(resp, Line.class);
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .syncBody("TOOOOOKEN");
                         })
 
+                        //Does a WebClient GET request to /flux above
+                        .andRoute(GET("/auth"), serverRequest -> {
 
-                        //--------------------------------------------
-
-                        //Receives a flux body
-                        .andRoute(POST("/flux"), serverRequest -> {
-
-                            Flux<Line> response = serverRequest
-                                    .bodyToFlux(Line.class)
-                                    .map(l -> new Line(l.value + "-PROCESSED"))
-                                    .doOnNext(l -> log.info("PROCESSED : " + l));
+                            if (serverRequest.headers().header("TOKEN").isEmpty()) {
+                                throw new RuntimeException("NO TOKEN");
+                            }
 
                             return ServerResponse
-                                    .ok()
-                                    .contentType(MediaType.APPLICATION_STREAM_JSON)
-                                    .body(response, Line.class);
-                        })
-
-                        //Sends a Flux body
-                        .andRoute(GET("/postFlux"), serverRequest -> {
-
-
-                            Flux<Line> lineFlux = Flux.just("1", "2", "3")
-                                    .delayElements(Duration.ofSeconds(2))
-                                    .map(Line::new);
-
-                            Flux<Line> resp = client.post()
-                                    .uri("/flux")
-                                    .accept(MediaType.APPLICATION_STREAM_JSON)
-                                    .contentType(MediaType.APPLICATION_STREAM_JSON)
-                                    .body(lineFlux, Line.class)
-                                    .retrieve()
-                                    .bodyToFlux(Line.class)
-                                    .doOnNext(l -> log.info("RECV : " + l));
-
-                            return ServerResponse
-                                    .ok()
-                                    .contentType(MediaType.APPLICATION_STREAM_JSON)
-                                    .body(resp, Line.class);
+                                    .status(201)
+                                    .build();
                         })
 
                 ;
