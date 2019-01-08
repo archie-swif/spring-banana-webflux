@@ -1,0 +1,20 @@
+<!--<configuration>-->
+<!--<appender name="map" class="com.banana.appender.MapAppender"/>-->
+<!--<root level="info">-->
+<!--<appender-ref ref="map"/>-->
+<!--</root>-->
+<!--</configuration>-->
+
+
+<configuration>
+
+    <appender name="STDOUT" class="com.banana.appender.BananaAppender">
+        <encoder>
+            <pattern>%X{xxx} --- %d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <root level="debug">
+        <appender-ref ref="STDOUT"/>
+    </root>
+</configuration>

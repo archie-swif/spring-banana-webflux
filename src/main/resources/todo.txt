@@ -1,0 +1,4 @@
+1. start with a copy of an existing module,
+2. create an adapter between your logging system and org.slf4j.Logger interface
+3. create a factory for the adapter created in the previous step,
+4. modify StaticLoggerBinder class to use the factory you created in the previous step

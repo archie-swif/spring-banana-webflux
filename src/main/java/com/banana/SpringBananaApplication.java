@@ -2,6 +2,7 @@ package com.banana;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -12,15 +13,19 @@ import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.RouterFunctions;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.core.publisher.Signal;
 
 import java.time.Duration;
+import java.util.Locale;
+import java.util.Optional;
+import java.util.function.Consumer;
 
 import static org.springframework.web.reactive.function.server.RequestPredicates.GET;
-import static org.springframework.web.reactive.function.server.RequestPredicates.POST;
 
 @SpringBootApplication
 public class SpringBananaApplication {
-    private static Logger log = LoggerFactory.getLogger(SpringBananaApplication.class);
+    private static Logger log = LoggerFactory.getLogger("SpringBananaApplication");
 
     public static void main(String[] args) {
         SpringApplication.run(SpringBananaApplication.class, args);
@@ -36,82 +41,57 @@ public class SpringBananaApplication {
 
     @Bean
     public RouterFunction<ServerResponse> router() {
+
+        log.info("HELLO");
+
         return
                 RouterFunctions
 
                         //Return a flux stream that breaks on element #4, as defined in Line constructor
                         .route(GET("/flux"), serverRequest -> {
-                            Flux<Line> lineFlux = Flux.just("1", "2", "3", "4", "5")
+                            Flux<String> lineFlux = Flux.just("1")
                                     .delayElements(Duration.ofSeconds(1))
                                     .map(Object::toString)
                                     .map(Line::new)
-//                                    .onErrorContinue((err, ojb) -> System.err.println("Continued on /flux"))
+                                    .flatMap(l ->
+                                    {
+                                        log.info("1");
+                                        return Mono.subscriberContext().map(c -> {
+                                            log.info("2");
+                                            return l.toString() + " " + c.getOrDefault("time", 0) + "\n";
+                                        });
+                                    })
+                                    .doOnNext(l -> {
+                                        log.info("3");
+                                    })
+                                    .doOnEach(logOnNext(msg -> log.info("FOUR "+msg)))
                                     .log();
 
 
-                            return ServerResponse
-                                    .ok()
-                                    .contentType(MediaType.APPLICATION_STREAM_JSON)
-                                    .body(lineFlux, Line.class);
-                        })
-
-                        //Does a WebClient GET request to /flux above
-                        .andRoute(GET("/getFlux"), serverRequest -> {
-
-                            Flux<Line> resp = client.get()
-                                    .uri("/flux")
-                                    .accept(MediaType.APPLICATION_STREAM_JSON)
-                                    .retrieve()
-                                    .bodyToFlux(Line.class)
-                                    .doOnNext(l -> log.info("RECV : " + l));
 
                             return ServerResponse
                                     .ok()
                                     .contentType(MediaType.APPLICATION_STREAM_JSON)
-                                    .body(resp, Line.class);
-                        })
+                                    .body(lineFlux, String.class);
+                        });
+    }
 
+    private static <T> Consumer<Signal<T>> logOnNext(Consumer<T> logStatement) {
+        return signal -> {
 
-                        //--------------------------------------------
+            if (!signal.isOnNext()) {
+                return;
+            }
 
-                        //Receives a flux body
-                        .andRoute(POST("/flux"), serverRequest -> {
-
-                            Flux<Line> response = serverRequest
-                                    .bodyToFlux(Line.class)
-                                    .map(l -> new Line(l.value + "-PROCESSED"))
-                                    .doOnNext(l -> log.info("PROCESSED : " + l));
-
-                            return ServerResponse
-                                    .ok()
-                                    .contentType(MediaType.APPLICATION_STREAM_JSON)
-                                    .body(response, Line.class);
-                        })
-
-                        //Sends a Flux body
-                        .andRoute(GET("/postFlux"), serverRequest -> {
-
-
-                            Flux<Line> lineFlux = Flux.just("1", "2", "3")
-                                    .delayElements(Duration.ofSeconds(2))
-                                    .map(Line::new);
-
-                            Flux<Line> resp = client.post()
-                                    .uri("/flux")
-                                    .accept(MediaType.APPLICATION_STREAM_JSON)
-                                    .contentType(MediaType.APPLICATION_STREAM_JSON)
-                                    .body(lineFlux, Line.class)
-                                    .retrieve()
-                                    .bodyToFlux(Line.class)
-                                    .doOnNext(l -> log.info("RECV : " + l));
-
-                            return ServerResponse
-                                    .ok()
-                                    .contentType(MediaType.APPLICATION_STREAM_JSON)
-                                    .body(resp, Line.class);
-                        })
-
-                ;
+            Optional<String> valueFromContext = signal.getContext().getOrEmpty("xxx");
+            if (valueFromContext.isPresent()) {
+                try (MDC.MDCCloseable closeable = MDC.putCloseable("xxx", valueFromContext.get())) {
+                    logStatement.accept(signal.get());
+                }
+            } else {
+                logStatement.accept(signal.get());
+            }
+        };
     }
 
 }
