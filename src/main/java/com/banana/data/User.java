@@ -12,7 +12,7 @@
  * unless prior written permission is obtained from Pearson Education, Inc.
 
  */
-package com.banana;
+package com.banana.data;
 
 import com.couchbase.client.java.repository.annotation.Id;
 import lombok.AllArgsConstructor;
@@ -21,29 +21,29 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.couchbase.core.mapping.Document;
 import org.springframework.data.couchbase.core.mapping.id.GeneratedValue;
 
-import javax.validation.constraints.*;
-import java.io.Serializable;
-
 import static org.springframework.data.couchbase.core.mapping.id.GenerationStrategy.UNIQUE;
 
-@Document(expiry = 3000)
+@Document
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class User implements Serializable {
+public class User {
 
     @Id
     @GeneratedValue(strategy = UNIQUE)
-    @NotEmpty
     public String id;
 
-    @NotNull
     public String firstName;
 
-    @NotBlank
     public String lastName;
 
-    @Min(5)
-    @Max(20)
     public int activeMinutes;
+
+    public int getActiveMinutes() {
+        return activeMinutes;
+    }
+
+    public void setActiveMinutes(int activeMinutes) {
+        this.activeMinutes = activeMinutes;
+    }
 }
