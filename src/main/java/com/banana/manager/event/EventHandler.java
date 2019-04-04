@@ -14,8 +14,6 @@ import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.MonoSink;
 
-import java.time.Duration;
-import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -41,10 +39,6 @@ public class EventHandler {
 
     public void register(MonoSink<String> sink, String id) {
         sinks.put(id, sink);
-
-//        Mono.delay(Duration.ofMillis(1))
-//                .doOnNext(l -> sink.success(id))
-//                .subscribe();
     }
 
     @StreamListener

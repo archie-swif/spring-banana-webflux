@@ -22,9 +22,6 @@ import static org.springframework.web.reactive.function.server.RequestPredicates
 public class Routes {
 
     @Autowired
-    EventHandler eventHandler;
-
-    @Autowired
     UserRepository userRepository;
 
 
