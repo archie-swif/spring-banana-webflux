@@ -39,7 +39,6 @@ public class Routes {
 
                     Mono<String> bridge = Mono.create(sink -> eventHandler.register(sink, id));
 
-
                     Mono<String> sender = serverRequest.bodyToMono(User.class)
                             .doOnNext(u -> u.setId(id))
                             .map(eventHandler::sendTodo)
@@ -47,7 +46,7 @@ public class Routes {
 
                     return ServerResponse.ok().body(sender, String.class);
                 })
-                .andRoute(GET("/user"),  serverRequest -> {
+                .andRoute(GET("/user"), serverRequest -> {
                     return ServerResponse.ok().body(userRepository.findById("67697dc3-39d1-4eef-ba5a-f75dba369a5c"), User.class);
                 });
     }

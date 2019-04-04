@@ -21,6 +21,8 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.couchbase.core.mapping.Document;
 import org.springframework.data.couchbase.core.mapping.id.GeneratedValue;
 
+import java.time.Instant;
+
 import static org.springframework.data.couchbase.core.mapping.id.GenerationStrategy.UNIQUE;
 
 @Document
@@ -39,11 +41,5 @@ public class User {
 
     public int activeMinutes;
 
-    public int getActiveMinutes() {
-        return activeMinutes;
-    }
-
-    public void setActiveMinutes(int activeMinutes) {
-        this.activeMinutes = activeMinutes;
-    }
+    public Instant createdTime = Instant.now();
 }

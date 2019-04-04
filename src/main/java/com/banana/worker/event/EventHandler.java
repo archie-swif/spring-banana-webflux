@@ -28,7 +28,7 @@ public class EventHandler {
     @StreamListener
     public void inputHandler(@Input(TodoIn.name) Flux<User> todo) {
         todo
-                .flatMap(u -> userRepository.save(u))
+//                .flatMap(u -> userRepository.save(u))
                 .map(u -> MessageBuilder.withPayload(u).build())
                 .map(msg -> out.output().send(msg))
                 .subscribe();

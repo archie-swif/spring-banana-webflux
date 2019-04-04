@@ -2,7 +2,6 @@ package com.banana.manager.event;
 
 import com.banana.data.User;
 import com.banana.data.UserRepository;
-import com.couchbase.client.core.lang.Tuple;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.stream.annotation.EnableBinding;
@@ -15,8 +14,8 @@ import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.MonoSink;
 
-import java.util.Collections;
-import java.util.HashMap;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -43,13 +42,17 @@ public class EventHandler {
     public void register(MonoSink<String> sink, String id) {
         sinks.put(id, sink);
 
+//        Mono.delay(Duration.ofMillis(1))
+//                .doOnNext(l -> sink.success(id))
+//                .subscribe();
     }
 
     @StreamListener
     public void inputHandler(@Input(WorkCompleteIn.name) Flux<User> incomingEvent) {
         incomingEvent
+//                .doOnNext(u -> log.info(Duration.between(u.getCreatedTime(), Instant.now())))
                 .map(User::getId)
-                .flatMap(id -> userRepository.findById(id).map(User::getId))
+//                .flatMap(id -> userRepository.findById(id).map(User::getId))
                 .doOnNext(id -> sinks.remove(id).success(id))
                 .subscribe();
     }
