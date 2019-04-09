@@ -1,7 +1,6 @@
 package com.banana.worker.event;
 
 import com.banana.data.User;
-import com.banana.data.UserRepository;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.stream.annotation.EnableBinding;
@@ -20,15 +19,11 @@ import reactor.core.publisher.Flux;
 public class EventHandler {
 
     @Autowired
-    UserRepository userRepository;
-
-    @Autowired
     WorkCompleteOut out;
 
     @StreamListener
     public void inputHandler(@Input(TodoIn.name) Flux<User> todo) {
         todo
-//                .flatMap(u -> userRepository.save(u))
                 .map(u -> MessageBuilder.withPayload(u).build())
                 .map(msg -> out.output().send(msg))
                 .subscribe();

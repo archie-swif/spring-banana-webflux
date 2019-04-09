@@ -14,25 +14,17 @@
  */
 package com.banana.data;
 
-import com.couchbase.client.java.repository.annotation.Id;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.data.couchbase.core.mapping.Document;
-import org.springframework.data.couchbase.core.mapping.id.GeneratedValue;
 
 import java.time.Instant;
 
-import static org.springframework.data.couchbase.core.mapping.id.GenerationStrategy.UNIQUE;
-
-@Document
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class User {
 
-    @Id
-    @GeneratedValue(strategy = UNIQUE)
     public String id;
 
     public String firstName;

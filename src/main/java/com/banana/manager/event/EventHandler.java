@@ -1,7 +1,6 @@
 package com.banana.manager.event;
 
 import com.banana.data.User;
-import com.banana.data.UserRepository;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.stream.annotation.EnableBinding;
@@ -29,9 +28,6 @@ public class EventHandler {
     @Autowired
     TodoOut out;
 
-    @Autowired
-    UserRepository userRepository;
-
     public boolean sendTodo(User user) {
         Message<User> msg = MessageBuilder.withPayload(user).build();
         return out.output().send(msg);
@@ -46,7 +42,6 @@ public class EventHandler {
         incomingEvent
 //                .doOnNext(u -> log.info(Duration.between(u.getCreatedTime(), Instant.now())))
                 .map(User::getId)
-//                .flatMap(id -> userRepository.findById(id).map(User::getId))
                 .doOnNext(id -> sinks.remove(id).success(id))
                 .subscribe();
     }
