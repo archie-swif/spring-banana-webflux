@@ -14,6 +14,8 @@ import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.MonoSink;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -33,7 +35,9 @@ public class EventHandler {
     UserRepository userRepository;
 
     public boolean sendTodo(User user) {
-        Message<User> msg = MessageBuilder.withPayload(user).build();
+        Message<User> msg = MessageBuilder.withPayload(user)
+                .setHeader("partitionKey", user.getFirstName())
+                .build();
         return out.output().send(msg);
     }
 
@@ -44,7 +48,7 @@ public class EventHandler {
     @StreamListener
     public void inputHandler(@Input(WorkCompleteIn.name) Flux<User> incomingEvent) {
         incomingEvent
-//                .doOnNext(u -> log.info(Duration.between(u.getCreatedTime(), Instant.now())))
+                .doOnNext(u -> log.info(Duration.between(u.getCreatedTime(), Instant.now())))
                 .map(User::getId)
 //                .flatMap(id -> userRepository.findById(id).map(User::getId))
                 .doOnNext(id -> sinks.remove(id).success(id))
