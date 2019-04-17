@@ -57,6 +57,13 @@
             <artifactId>spring-cloud-stream-reactive</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>io.dropwizard.metrics</groupId>
+            <artifactId>metrics-core</artifactId>
+            <version>4.0.5</version>
+            <version>4.0.5</version>
+        </dependency>
+
 
     </dependencies>
 

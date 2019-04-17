@@ -33,9 +33,19 @@ public class Routes {
                     Mono<String> sender = serverRequest.bodyToMono(User.class)
                             .doOnNext(u -> u.setId(id))
                             .map(eventHandler::sendTodo)
-                            .flatMap(b -> bridge);
+                            .then(bridge);
 
                     return ServerResponse.ok().body(sender, String.class);
+                })
+                .andRoute(POST("/user-nb"), serverRequest -> {
+
+                    String id = UUID.randomUUID().toString();
+
+                    Mono<Boolean> sender = serverRequest.bodyToMono(User.class)
+                            .doOnNext(u -> u.setId(id))
+                            .map(eventHandler::sendTodo);
+
+                    return ServerResponse.ok().body(sender, Boolean.class);
                 });
     }
 

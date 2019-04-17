@@ -34,4 +34,6 @@ public class User {
     public int activeMinutes;
 
     public Instant createdTime = Instant.now();
+    public Instant processedTime;
+    public Instant receivedTime;
 }
