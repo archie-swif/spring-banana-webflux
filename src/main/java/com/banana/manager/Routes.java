@@ -1,6 +1,7 @@
 package com.banana.manager;
 
 import com.banana.data.User;
+import com.banana.manager.event.DummyEventHandler;
 import com.banana.manager.event.EventHandler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,7 +21,7 @@ public class Routes {
 
 
     @Bean
-    public RouterFunction<ServerResponse> router(EventHandler eventHandler) {
+    public RouterFunction<ServerResponse> router(EventHandler eventHandler, DummyEventHandler dummyHandler) {
 
         return RouterFunctions
 
@@ -46,6 +47,9 @@ public class Routes {
                             .map(eventHandler::sendTodo);
 
                     return ServerResponse.ok().body(sender, Boolean.class);
+                })
+                .andRoute(POST("/noop"), serverRequest -> {
+                    return ServerResponse.ok().build();
                 });
     }
 
